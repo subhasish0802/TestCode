@@ -1,4 +1,4 @@
-# buggy_script.py dummy comment
+# buggy_script.py bugged file
 
 def is_prime(n: int) -> bool:
     """
