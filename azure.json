@@ -1,0 +1,30 @@
+{
+    "deployment_type": "azure",
+    "api_url": "https://praka-m7j08s32-eastus2.openai.azure.com/openai/deployments/cppe-gpt-4o/chat/completions?api-version=2024-08-01-preview",
+    "api_key": "ChtOqoJctV0kuVCgRiWtuSLMIEZVyQBId2FZtOMEEHBOQEpVoJ1dJQQJ99BBACHYHv6XJ3w3AAAAACOG4Uld",
+    "langfuse": {
+      "public_key": "pk-lf-4f1004d8-20fa-4b40-a956-1a86d85fd835",
+      "secret_key": "sk-lf-03e3272e-4a8e-4378-b01e-43783b646e8a",
+      "host": "https://us.cloud.langfuse.com"
+    },
+    "evaluator": {
+      "api_key": "6ad684f932ef49719746a261354cfe64",
+      "api_url": "https://weecopilotfactory.openai.azure.com/openai/deployments/ConverseBoost/chat/completions?api-version=2024-08-01-preview",
+      "model": {
+        "name": "gpt-35-evaluator"
+      }
+    },
+    "model": {
+      "name": "gpt-4o-azure",
+      "max_tokens": 1000,
+      "temperature": 0.7
+    },
+    "session": {
+      "id": "session-azure-local",
+      "user_id": "subhasish-local"
+    },
+    "timeout": 30
+  }
+  
+
+

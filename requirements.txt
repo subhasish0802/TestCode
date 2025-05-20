@@ -1,0 +1,7 @@
+langgraph
+openai
+requests
+flake8
+mypy
+pytest
+pytest-json-report
