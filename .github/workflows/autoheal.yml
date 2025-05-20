@@ -23,9 +23,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: 🔍 Run Autoheal on Changed Files
+    - name: 🔍 Run Autoheal on Python Files in code/
       run: |
-        for f in $(git diff --name-only HEAD^ HEAD | grep '^code/.*\.py$'); do
+        for f in $(find code -name '*.py'); do
           echo "Evaluating $f..."
           python autoheal_graph.py "$f"
         done
