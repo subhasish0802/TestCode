@@ -1,12 +1,8 @@
 from langgraph.graph import StateGraph, END
-from langgraph.graph.message import add_messages
 import os, tempfile, subprocess, json, requests, sys
 from typing import Dict
 
-# ----------------------
-# Load Config from GitHub Secrets or azure.json (fallback for local dev)
-# ----------------------
-
+# Load credentials
 if os.path.exists("azure.json"):
     with open("azure.json") as f:
         config = json.load(f)
@@ -21,9 +17,7 @@ eval_headers = {
     "Content-Type": "application/json"
 }
 
-# ----------------------
-# Agent Nodes
-# ----------------------
+# --------------- Node Functions ----------------
 
 def run_static_checks_node(state: Dict) -> Dict:
     code = state["code"]
@@ -48,18 +42,14 @@ def run_pytest_node(state: Dict) -> Dict:
     with tempfile.TemporaryDirectory() as tmp:
         code_path = os.path.join(tmp, "submission.py")
         test_path = os.path.join(tmp, "test_submission.py")
-
         with open(code_path, "w") as f:
             f.write(state["code"])
         with open(test_path, "w") as f:
             f.write(state["test_code"])
-
         state["pytest_report"] = run_pytest(code_path, test_path)
     return state
 
-# ----------------------
-# Utility Functions
-# ----------------------
+# --------------- Utility Functions ----------------
 
 def run_static_checks(code_path: str) -> Dict:
     results = {}
@@ -76,12 +66,23 @@ def run_static_checks(code_path: str) -> Dict:
     return results
 
 def call_llm(code: str, api_url: str, headers: dict) -> Dict:
-    prompt = f"""Analyze the following Python function and determine:\n
-1. Whether the logic is sound\n
-2. If it covers all edge cases\n
-3. If the function would pass standard test cases\n
-Give a JSON result with:\n{{\n  \"verdict\": \"pass\" or \"fail\",\n  \"reason\": \"...\",\n  \"suggestions\": \"...\"\n}}\n
-PYTHON CODE:\n```python\n{code}\n```"""
+    prompt = f"""Analyze the following Python function and determine:
+
+1. Whether the logic is sound
+2. If it covers all edge cases
+3. If the function would pass standard test cases
+
+Give a JSON result with:
+{{
+  "verdict": "pass" or "fail",
+  "reason": "...",
+  "suggestions": "..."
+}}
+
+PYTHON CODE:
+```python
+{code}
+```"""
     body = {
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": 400,
@@ -107,8 +108,7 @@ def generate_tests(code: str, api_url: str, headers: dict) -> str:
     r.raise_for_status()
     raw_code = r.json()["choices"][0]["message"]["content"]
     clean_code = raw_code.replace("```python", "").replace("```", "").strip()
-    fixed_code = clean_code.replace("from buggy_script", "from submission")
-    return fixed_code
+    return clean_code.replace("from buggy_script", "from submission")
 
 def run_pytest(code_path: str, test_path: str) -> Dict:
     report_file = os.path.join(os.path.dirname(test_path), "report.json")
@@ -125,27 +125,21 @@ def run_pytest(code_path: str, test_path: str) -> Dict:
         return json.load(open(report_file))
     return {"error": "No report generated"}
 
-# ----------------------
-# LangGraph Definition
-# ----------------------
+# --------------- LangGraph ----------------
 
 graph = StateGraph(state_schema=dict)
 graph.add_node("StaticCheck", run_static_checks_node)
 graph.add_node("LLMEval", call_llm_node)
 graph.add_node("TestGen", generate_tests_node)
 graph.add_node("TestRun", run_pytest_node)
-
 graph.set_entry_point("StaticCheck")
 graph.add_edge("StaticCheck", "LLMEval")
 graph.add_edge("LLMEval", "TestGen")
 graph.add_edge("TestGen", "TestRun")
 graph.add_edge("TestRun", END)
-
 app = graph.compile()
 
-# ----------------------
-# CLI Entry Point
-# ----------------------
+# --------------- CLI + Markdown Output ----------------
 
 def evaluate_code_from_file(file_path: str):
     if not os.path.exists(file_path):
@@ -159,7 +153,6 @@ def evaluate_code_from_file(file_path: str):
 
     verdict = result.get("llm_verdict", {}).get("verdict", "unknown")
     verdict_icon = "✅ PASS" if verdict == "pass" else "❌ FAIL"
-    print(f"\n🧠 Final Verdict: {verdict_icon}")
 
     print("\n::group::📋 Static Analysis")
     print(json.dumps(result.get("static_analysis", {}), indent=2))
@@ -174,6 +167,27 @@ def evaluate_code_from_file(file_path: str):
     print("::endgroup::")
 
     print("\n✅ Pipeline completed.\n")
+
+    # Markdown report output
+    os.makedirs("reports", exist_ok=True)
+    md_path = os.path.join("reports", f"{os.path.basename(file_path).replace('.py', '')}_autoheal.md")
+    with open(md_path, "w", encoding="utf-8") as f:
+        f.write(f"""## Autoheal Report for `{file_path}`
+
+### 🧠 LLM Verdict: {verdict_icon}
+**Reason**: {result.get("llm_verdict", {}).get("reason", "-")}  
+**Suggestions**: {result.get("llm_verdict", {}).get("suggestions", "-")}
+
+### 📋 Static Analysis
+- flake8: {len(result.get("static_analysis", {}).get("flake8", []))} issue(s)
+- mypy: {len(result.get("static_analysis", {}).get("mypy", []))} issue(s)
+
+### 🧪 Pytest Summary
+- Failed: {result.get("pytest_report", {}).get("summary", {}).get("failed", 0)} / {result.get("pytest_report", {}).get("summary", {}).get("collected", 0)}
+
+---
+✅ Autoheal completed.
+""")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

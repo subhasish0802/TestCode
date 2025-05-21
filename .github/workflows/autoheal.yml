@@ -36,3 +36,10 @@ jobs:
         env:
           EVALUATOR_API_URL: ${{ secrets.EVALUATOR_API_URL }}
           EVALUATOR_API_KEY: ${{ secrets.EVALUATOR_API_KEY }}
+
+      - name: 📦 Upload Autoheal Markdown Reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: autoheal-reports
+          path: |
+            code/*_autoheal_report.md
