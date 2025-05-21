@@ -1,4 +1,3 @@
-# autoheal_graph.py
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 import os, tempfile, subprocess, json, requests, sys
@@ -175,40 +174,6 @@ def evaluate_code_from_file(file_path: str):
     print("::endgroup::")
 
     print("\n✅ Pipeline completed.\n")
-
-    if os.environ.get("GITHUB_EVENT_NAME") == "pull_request":
-        try:
-            with open(os.environ["GITHUB_EVENT_PATH"], "r") as f:
-                event = json.load(f)
-            pr_number = event["number"]
-            repo = os.environ["GITHUB_REPOSITORY"]
-            token = os.environ["GITHUB_TOKEN"]
-
-            comment_body = f"""
-### 🤖 Autoheal Results for `{file_path}`
-
-**🧠 LLM Verdict**: {verdict_icon}  
-**Reason**: {result.get("llm_verdict", {}).get("reason", "-")}  
-**Suggestions**: {result.get("llm_verdict", {}).get("suggestions", "-")}
-
-**📋 Static Analysis**:
-- flake8: {len(result.get("static_analysis", {}).get("flake8", []))} issue(s)
-- mypy: {len(result.get("static_analysis", {}).get("mypy", []))} issue(s)
-
-**🧪 Pytest**: {result.get("pytest_report", {}).get("summary", {}).get("failed", 0)} failed out of {result.get("pytest_report", {}).get("summary", {}).get("collected", 0)} test(s)
-"""
-
-            requests.post(
-                f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments",
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Accept": "application/vnd.github+json"
-                },
-                json={"body": comment_body}
-            )
-            print("💬 PR comment posted successfully.")
-        except Exception as e:
-            print(f"⚠️ Failed to post PR comment: {e}")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
