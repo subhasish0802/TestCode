@@ -29,6 +29,7 @@ jobs:
 
       - name: 🔍 Run Autoheal on Python Files in code/
         run: |
+          mkdir -p reports
           for f in $(find code -name '*.py'); do
             echo "Evaluating $f..."
             python autoheal_graph.py "$f"
@@ -37,9 +38,8 @@ jobs:
           EVALUATOR_API_URL: ${{ secrets.EVALUATOR_API_URL }}
           EVALUATOR_API_KEY: ${{ secrets.EVALUATOR_API_KEY }}
 
-      - name: 📦 Upload Autoheal Markdown Reports
-        uses: actions/upload-artifact@v3
+      - name: 📎 Upload Markdown Report as Artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: autoheal-reports
-          path: |
-            code/*_autoheal_report.md
+          name: autoheal-markdown-report
+          path: reports/*.md
