@@ -25,31 +25,18 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install ghapi pytest-json-report
+          pip install pytest-json-report
 
       - name: 🔍 Run Autoheal on Python Files in code/
-        id: autoheal
         run: |
-          OUTPUT=""
           for f in $(find code -name '*.py'); do
             echo "Evaluating $f..."
-            RESULT=$(python autoheal_graph.py "$f")
-            echo "$RESULT"
-            OUTPUT="$OUTPUT\n\n### File: $f\n$RESULT"
+            python autoheal_graph.py "$f"
           done
-          echo -e "$OUTPUT" > result.txt
-          echo "AUTOHEAL_REPORT<<EOF" >> $GITHUB_ENV
-          echo -e "$OUTPUT" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
         env:
           EVALUATOR_API_URL: ${{ secrets.EVALUATOR_API_URL }}
           EVALUATOR_API_KEY: ${{ secrets.EVALUATOR_API_KEY }}
-
-      - name: 💬 Post PR Comment
-        if: github.event_name == 'pull_request'
-        run: |
-          gh pr comment ${{ github.event.pull_request.number }} \
-            --repo ${{ github.repository }} \
-            --body "${{ env.AUTOHEAL_REPORT }}"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
