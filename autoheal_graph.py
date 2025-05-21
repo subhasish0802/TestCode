@@ -157,15 +157,28 @@ def evaluate_code_from_file(file_path: str):
     print(f"\n🔍 Evaluating: {file_path}\n")
     result = app.invoke(initial_state)
 
-    print("✅ Pipeline completed.")
-    print("\n📋 Static Analysis:")
-    print(result.get("static_analysis", {}))
+    # Print verdict line
+    verdict = result.get("llm_verdict", {}).get("verdict", "unknown")
+    verdict_icon = "✅ PASS" if verdict == "pass" else "❌ FAIL"
+    print(f"\n🧠 Final Verdict: {verdict_icon}")
 
-    print("\n🧠 LLM Verdict:")
-    print(result.get("llm_verdict", {}))
+    # Static Analysis Section
+    print("\n::group::📋 Static Analysis")
+    print(json.dumps(result.get("static_analysis", {}), indent=2))
+    print("::endgroup::")
 
-    print("\n🧪 Pytest Report Summary:")
-    print(result.get("pytest_report", {}))
+    # LLM Evaluation Section
+    print("\n::group::🧠 LLM Verdict")
+    print(json.dumps(result.get("llm_verdict", {}), indent=2))
+    print("::endgroup::")
+
+    # Pytest Report Section
+    print("\n::group::🧪 Pytest Report Summary")
+    print(json.dumps(result.get("pytest_report", {}), indent=2))
+    print("::endgroup::")
+
+    print("\n✅ Pipeline completed.\n")
+
 
 
 if __name__ == "__main__":
