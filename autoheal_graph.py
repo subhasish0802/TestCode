@@ -157,29 +157,59 @@ def evaluate_code_from_file(file_path: str):
     print(f"\n🔍 Evaluating: {file_path}\n")
     result = app.invoke(initial_state)
 
-    # Print verdict line
     verdict = result.get("llm_verdict", {}).get("verdict", "unknown")
     verdict_icon = "✅ PASS" if verdict == "pass" else "❌ FAIL"
     print(f"\n🧠 Final Verdict: {verdict_icon}")
 
-    # Static Analysis Section
     print("\n::group::📋 Static Analysis")
     print(json.dumps(result.get("static_analysis", {}), indent=2))
     print("::endgroup::")
 
-    # LLM Evaluation Section
     print("\n::group::🧠 LLM Verdict")
     print(json.dumps(result.get("llm_verdict", {}), indent=2))
     print("::endgroup::")
 
-    # Pytest Report Section
     print("\n::group::🧪 Pytest Report Summary")
     print(json.dumps(result.get("pytest_report", {}), indent=2))
     print("::endgroup::")
 
     print("\n✅ Pipeline completed.\n")
 
+    # Add PR Comment Support
+    if os.environ.get("GITHUB_EVENT_NAME") == "pull_request":
+        try:
+            with open(os.environ["GITHUB_EVENT_PATH"], "r") as f:
+                event = json.load(f)
+            pr_number = event["number"]
+            repo = os.environ["GITHUB_REPOSITORY"]
+            token = os.environ["GITHUB_TOKEN"]
 
+            comment_body = f"""
+### 🤖 Autoheal Results for `{file_path}`
+
+**🧠 LLM Verdict**: {verdict_icon}  
+**Reason**: {result.get("llm_verdict", {}).get("reason", "-")}  
+**Suggestions**: {result.get("llm_verdict", {}).get("suggestions", "-")}
+
+**📋 Static Analysis**:
+- flake8: {len(result.get("static_analysis", {}).get("flake8", []))} issue(s)
+- mypy: {len(result.get("static_analysis", {}).get("mypy", []))} issue(s)
+
+**🧪 Pytest**: {result.get("pytest_report", {}).get("summary", {}).get("failed", 0)} failed out of {result.get("pytest_report", {}).get("summary", {}).get("collected", 0)} test(s)
+"""
+
+            response = requests.post(
+                f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/vnd.github+json"
+                },
+                json={"body": comment_body}
+            )
+            response.raise_for_status()
+            print("💬 PR comment posted successfully.")
+        except Exception as e:
+            print(f"⚠️ Failed to post PR comment: {e}")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
