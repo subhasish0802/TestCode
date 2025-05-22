@@ -163,7 +163,28 @@ def evaluate_code_from_file(file_path: str):
     print("::endgroup::")
 
     print("\n::group::🧪 Pytest Report Summary")
-    print(json.dumps(result.get("pytest_report", {}), indent=2))
+    pytest = result.get("pytest_report", {})
+    tests = pytest.get("tests", [])
+
+    if not tests:
+        print("No test details found.")
+    else:
+        for t in tests:
+            name = t.get("nodeid", "unknown")
+            status = t.get("outcome", "unknown")
+            icon = "✅" if status == "passed" else "❌"
+            print(f"{icon} {name} — {status.upper()}")
+
+            if status == "failed":
+                call = t.get("call", {})
+                crash = call.get("crash", {})
+                tb = call.get("traceback", [])
+                reason = crash.get("message", "")
+                trace_line = tb[-1]["message"] if tb else ""
+                if reason:
+                    print(f"   ↳ Reason: {reason}")
+                if trace_line:
+                    print(f"   ↳ Trace:  {trace_line}")
     print("::endgroup::")
 
     print("\n✅ Pipeline completed.\n")
@@ -171,6 +192,28 @@ def evaluate_code_from_file(file_path: str):
     # Markdown report output
     os.makedirs("reports", exist_ok=True)
     md_path = os.path.join("reports", f"{os.path.basename(file_path).replace('.py', '')}_autoheal.md")
+
+    # Build readable pytest summary for markdown
+    pytest_md = ""
+    if not tests:
+        pytest_md += "No test details found.\n"
+    else:
+        for t in tests:
+            name = t.get("nodeid", "unknown")
+            status = t.get("outcome", "unknown")
+            icon = "✅" if status == "passed" else "❌"
+            pytest_md += f"- {icon} **{name}** — {status.upper()}\n"
+            if status == "failed":
+                call = t.get("call", {})
+                crash = call.get("crash", {})
+                tb = call.get("traceback", [])
+                reason = crash.get("message", "")
+                trace_line = tb[-1]["message"] if tb else ""
+                if reason:
+                    pytest_md += f"    - Reason: {reason}\n"
+                if trace_line:
+                    pytest_md += f"    - Trace:  {trace_line}\n"
+
     with open(md_path, "w", encoding="utf-8") as f:
         f.write(f"""## Autoheal Report for `{file_path}`
 
@@ -182,9 +225,8 @@ def evaluate_code_from_file(file_path: str):
 - flake8: {len(result.get("static_analysis", {}).get("flake8", []))} issue(s)
 - mypy: {len(result.get("static_analysis", {}).get("mypy", []))} issue(s)
 
-### 🧪 Pytest Summary
-- Failed: {result.get("pytest_report", {}).get("summary", {}).get("failed", 0)} / {result.get("pytest_report", {}).get("summary", {}).get("collected", 0)}
-
+### 🧪 Pytest Details
+{pytest_md}
 ---
 ✅ Autoheal completed.
 """)
