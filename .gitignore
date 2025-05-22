@@ -12,3 +12,6 @@ __pycache__/
 .vscode/
 env/
 azure.json
+# Ignore autoheal reports only
+reports/
+*_autoheal.md
