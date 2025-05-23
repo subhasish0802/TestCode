@@ -166,9 +166,7 @@ def evaluate_code_from_file(file_path: str):
     pytest = result.get("pytest_report", {})
     tests = pytest.get("tests", [])
 
-    if not tests:
-        print("No test details found.")
-    else:
+    if tests:
         for t in tests:
             name = t.get("nodeid", "unknown")
             status = t.get("outcome", "unknown")
@@ -185,6 +183,16 @@ def evaluate_code_from_file(file_path: str):
                     print(f"   ↳ Reason: {reason}")
                 if trace_line:
                     print(f"   ↳ Trace:  {trace_line}")
+    else:
+        summary = pytest.get("summary", {})
+        failed = summary.get("failed", 0)
+        collected = summary.get("collected", 0)
+        if collected and failed == 0:
+            print(f"✅ All {collected} tests passed! 🎉")
+        elif collected == 0:
+            print("⚠️ No tests were collected.")
+        else:
+            print("No test details found.")
     print("::endgroup::")
 
     print("\n✅ Pipeline completed.\n")
@@ -193,11 +201,8 @@ def evaluate_code_from_file(file_path: str):
     os.makedirs("reports", exist_ok=True)
     md_path = os.path.join("reports", f"{os.path.basename(file_path).replace('.py', '')}_autoheal.md")
 
-    # Build readable pytest summary for markdown
     pytest_md = ""
-    if not tests:
-        pytest_md += "No test details found.\n"
-    else:
+    if tests:
         for t in tests:
             name = t.get("nodeid", "unknown")
             status = t.get("outcome", "unknown")
@@ -213,6 +218,8 @@ def evaluate_code_from_file(file_path: str):
                     pytest_md += f"    - Reason: {reason}\n"
                 if trace_line:
                     pytest_md += f"    - Trace:  {trace_line}\n"
+    else:
+        pytest_md += "No test details found.\n"
 
     with open(md_path, "w", encoding="utf-8") as f:
         f.write(f"""## Autoheal Report for `{file_path}`
