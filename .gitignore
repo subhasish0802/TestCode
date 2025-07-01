@@ -15,3 +15,5 @@ azure.json
 # Ignore autoheal reports only
 reports/
 *_autoheal.md
+code/buggy_script.py
+code/correct_script.py
