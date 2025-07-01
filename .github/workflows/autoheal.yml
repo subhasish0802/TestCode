@@ -7,6 +7,7 @@ on:
   push:
     paths:
       - 'code/**/*.py'
+  workflow_dispatch:   # manual trigger
 
 jobs:
   autoheal:
@@ -15,6 +16,8 @@ jobs:
     steps:
       - name: ⬇️ Checkout Code
         uses: actions/checkout@v3
+        with:
+          persist-credentials: true
 
       - name: 🐍 Set up Python 3.10
         uses: actions/setup-python@v4
@@ -43,3 +46,9 @@ jobs:
         with:
           name: autoheal-markdown-report
           path: reports/*.md
+
+      - name: 📦 Upload Fixed-Code Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: autoheal-fixed-code
+          path: code/*_fixed.py
