@@ -1,5 +1,5 @@
 """
-Mini text-wrapping helper (INTENTIONALLY BROKEN for demo).
+Mini text-wrapping helper (INTENTIONALLY BROKEN for demo). demo change
 
 Goal
 ----
