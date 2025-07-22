@@ -1,5 +1,5 @@
 """
-Mini text-wrapping helper with subtle buggssss.
+Mini text-wrapping helper with subtle buggs.
 
 Functions
 ---------
